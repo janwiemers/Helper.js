@@ -7,70 +7,106 @@
  * @Package: simpleDOM
  */
 
-(function(
+(function(){
 
-	$ = simpleDOM = function(selector, context) {
-		if (!(this instanceof simpleDOM)) {
-            return new simpleDOM(selector, context)
+    $ = simpleDOM = function(selector, context) {
+        if (!(this instanceof simpleDOM)) {
+            return new simpleDOM(selector, context);
         }
 
-        this.elems    = null;
+        this.document = document;
+        this.window   = window
+        this.elems    = [];
+        this.context  = (context !== undefined) ? context : document;
         this.DOMReady = false;
 
+        /* Is the Sector a Function add it to the DOMReadyList */
+        if(typeof selector === 'function') { this.ready(selector); }
+        
+        /* else Execute the Query on the Context */
+        var _elemsHolder = this.context.querySelectorAll(selector);
 
-	}
+        try {
+            this.elems = Array.prototype.concat.call(_elemsHolder);
+        } catch (ex) {
 
-	DOM.prototype = {
+            for (var i in _elemsHolder) {
+                _elemsHolder.hasOwnProperty(i) && this.elems.push(_elemsHolder[i]);
+            }
+        }
 
-		checkDOMReady: function () {
+
+    };
+
+    simpleDOM.prototype = {
+
+        /**
+         * Add the Document Ready event
+         */
+        checkDOMReady: function () {
+
             if (!this.DOMReady) {
-                if (document.addEventListener) {
+                if (this.document.addEventListener) {
                     DOMContentLoaded = function (scope) {
                         return function () {
-                            document.removeEventListener("DOMContentLoaded", DOMContentLoaded, false);
-                            scope.setDOMReady()
-                        }
-                    }(this)
+                            this.document.removeEventListener("DOMContentLoaded", DOMContentLoaded, false);
+                            scope.setDOMReady();
+                        };
+                    }(this);
                 } else {
-                    if (document.attachEvent) {
+                    if (this.document.attachEvent) {
                         DOMContentLoaded = function (scope) {
                             return function () {
-                                if (document.readyState === "complete") {
-                                    document.detachEvent("onreadystatechange", DOMContentLoaded);
-                                    scope.setDOMReady()
+                                if (this.document.readyState === "complete") {
+                                    this.document.detachEvent("onreadystatechange", DOMContentLoaded);
+                                    scope.setDOMReady();
                                 }
-                            }
-                        }(this)
+                            };
+                        }(this);
                     }
                 }
-                if (document.readyState === "complete") {
-                    this.setDOMReady()
+                if (this.document.readyState === "complete") {
+                    this.setDOMReady();
                 }
-                if (document.addEventListener) {
-                    document.addEventListener("DOMContentLoaded", DOMContentLoaded, false);
-                    window.addEventListener("load", this.setDOMReady, false)
+                if (this.document.addEventListener) {
+                    this.document.addEventListener("DOMContentLoaded", DOMContentLoaded, false);
+                    this.window.addEventListener("load", this.setDOMReady, false);
                 } else {
-                    if (document.attachEvent) {
-                        document.attachEvent("onreadystatechange", DOMContentLoaded);
-                        window.attachEvent("onload", this.setDOMReady)
+                    if (this.document.attachEvent) {
+                        this.document.attachEvent("onreadystatechange", DOMContentLoaded);
+                        this.window.attachEvent("onload", this.setDOMReady);
                     }
                 }
             }
         },
+
+        /**
+         * Executes the Functions applyed
+         * @return {[type]} [description]
+         */
         executeDOMReadyFunctions: function () {
             for (var i = 0; i < this.DOMReadyList.length; i++) {
-                (new this.DOMReadyList[i]())
+                (new this.DOMReadyList[i]());
             }
         },
+
+        /**
+         * Sets the Document Ready Function to true
+         */
         setDOMReady: function () {
-            this.DOMReady = true
+            this.DOMReady = true;
         },
+
+        /**
+         * Public function to add Functions to the DocuementReady Event
+         * @param  function
+         */
         ready: function (fn) {
             if (typeof fn !== "function") {
-                return
+                return;
             }
             if (this.DOMReady) {
-                return fn()
+                return fn();
             }
             this.DOMReadyList.push(fn);
             if (!this.DOMReadyCheckRunning) {
@@ -80,13 +116,41 @@
                         scope.checkDOMReady();
                         if (scope.DOMReady) {
                             clearInterval(scope.DOMReadyInterval);
-                            scope.executeDOMReadyFunction()
+                            scope.executeDOMReadyFunction();
                         }
-                    }
-                }(this), 9)
+                    };
+                }(this), 9);
             }
-        },	
+        },
 
-	}
+        /**
+         * Returns the indexed Item of the Current Collection
+         * @param  integer index  [The Item id starts at 0]
+         * @return Array Index
+         */
+        eq: function( index ) {
+            return this.elems[index];
+        },
 
-)){}
+        /**
+         * Execute a for loop
+         * @param  {Function} callback [description]
+         * @return {[type]}            [description]
+         */
+        each: function( callback ){
+
+            var _length = this.elems.length,
+                _i      = 0;
+
+            while (_i < _length) {
+                _i++;
+                callback.call(this.elems[_i], _i);
+            }
+
+        }
+
+
+
+    };
+
+})();
